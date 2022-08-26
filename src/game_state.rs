@@ -41,10 +41,11 @@ pub enum Piece {
 #[derive(Clone, Copy)]
 pub struct GameState {
     pub bbs: [BitBoard;12],
-    white_to_move: bool,
-    ep_square: Option<Square>, // BitBoard with only en passant square set.
-    halfmove_clock: u8,
-    castlerights: [bool;4], // White/black, kingside and queenside.
+    pub white_to_move: bool,
+    pub ep_square: Option<Square>, // BitBoard with only en passant square set.
+    pub halfmove_clock: u8,
+    pub fullmove_clock: u32,
+    pub castlerights: [bool;4], // White/black, kingside and queenside.
     occupancy: PieceBitBoards,
 }
 
@@ -58,6 +59,7 @@ impl GameState {
             white_to_move: true,
             ep_square: None, // BitBoard with only en passant square set.
             halfmove_clock: 0,
+            fullmove_clock: 1,
             castlerights: [true;4],
             occupancy: PieceBitBoards::new(),
         }
@@ -69,6 +71,7 @@ impl GameState {
         white_to_move: bool,
         ep_square: Option<Square>,
         halfmove_clock: u8,
+        fullmove_clock: u32,
         castlerights: [bool;4],
     ) -> Self {
         GameState {
@@ -76,6 +79,7 @@ impl GameState {
             white_to_move,
             ep_square,
             halfmove_clock,
+            fullmove_clock,
             castlerights,
             occupancy: PieceBitBoards::new(),
         }
