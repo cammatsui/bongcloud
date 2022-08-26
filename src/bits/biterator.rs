@@ -2,11 +2,11 @@ use crate::game_state::BitBoard;
 use crate::bits::utils::{ lsb_mask, bitscan };
 
 
+
 /// Get a BitErator for a bitboard.
 pub fn biterator(bb: BitBoard) -> BitErator {
     BitErator { bb }
 }
-
 
 /// Get a BitBoardErator for a bitboard.
 pub fn bitboarderator(bb: BitBoard) -> BitBoardErator {
@@ -14,11 +14,11 @@ pub fn bitboarderator(bb: BitBoard) -> BitBoardErator {
 }
 
 
+
 /// An iterator over bits, returning bit indices of set bits from lsb to msb.
 pub struct BitErator {
     bb: BitBoard,
 }
-
 
 impl Iterator for BitErator {
     type Item = u32;
@@ -33,6 +33,7 @@ impl Iterator for BitErator {
         Some(lsb_idx)
     }
 }
+
 
 
 /// An iterator over bits returning bitboards with only next set significant bit in original 

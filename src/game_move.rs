@@ -1,4 +1,6 @@
-use crate::game_state::{ GameState, Square, Piece };
+use crate::game_state::Square;
+
+
 
 // Do not change the order.
 const METADATA_TO_MOVETYPE: [MoveType;16] = [
@@ -101,6 +103,3 @@ pub enum MoveType {
     RookPromoCapture,
     QueenPromoCapture,
 }
-
-
-

@@ -2,13 +2,16 @@
 use crate::bits::masks;
 
 
+
 /// A BitBoard is a 64-bit unsigned integer which gives piece occupancy. See chessprogrammingwiki
 /// page for more details.
 pub type BitBoard = u64;
 
 
+
 /// Index for a square.
 pub type Square = u8;
+
 
 
 /// Piece type index into GameState's bitboards arrays. To be used in conjuction with Color enum
@@ -33,6 +36,7 @@ pub enum Piece {
     BlackKing   = 11,
     Null        = 12,
 }
+
 
 
 /// Represents the state of the board as well as game metadata (en passant square, castle rights, 
@@ -83,7 +87,6 @@ impl GameState {
             castlerights,
             occupancy: PieceBitBoards::new(),
         }
-
     }
 
     /// Find the bitboard index of the piece occupying the square given by sq_idx. If no such
@@ -110,6 +113,7 @@ impl GameState {
         }
     }
 }
+
 
 
 /// Data structure to map from square number -> occupying piece bitboard idx.
@@ -144,6 +148,7 @@ impl PieceBitBoards {
 }
 
 
+
 /// We store the state stack in the stack for fast access. Thus we need a max size.
 pub const MAX_MOVESTACK_DEPTH: usize = 100;
 
@@ -172,6 +177,7 @@ impl GameStateStack {
         res
     }
 }
+
 
 
 #[cfg(test)]

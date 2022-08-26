@@ -1,7 +1,10 @@
 use crate::game_state::{ BitBoard, Square };
 
 
+
 const LSB3_BITMASK: u64 = 7;
+
+
 
 /// Get index of lsb on the given bitboard.
 pub fn bitscan(bb: BitBoard) -> u32 {

@@ -2,6 +2,7 @@ use crate::game_state::{ GameState, Square, Piece };
 use crate::bits::utils;
 
 
+
 /// Used to conver between FEN and GameState reprs.
 const FEN_PIECES: [(char, Piece);12] = [
     ('p', Piece::WhitePawn),
@@ -40,6 +41,7 @@ const FEN_FILES: [(char, u8);8] = [
 ];
 
 
+
 /// Make a GameState from the given FEN string.
 pub fn parse_fen(fen: String) -> GameState {
     let fields: Vec<&str> = fen.split(" ").collect();
@@ -66,6 +68,7 @@ pub fn parse_fen(fen: String) -> GameState {
 }
 
 
+
 /// Make a FEN string from the given GameState.
 pub fn ser_game_state(game_state: &GameState) -> String {
     vec![
@@ -77,6 +80,7 @@ pub fn ser_game_state(game_state: &GameState) -> String {
         serialize_utils::ser_fullmove_clock(game_state),
     ].join(" ")
 }
+
 
 
 /// Utility functions for serializing GameState to a FEN string.
@@ -173,6 +177,7 @@ mod serialize_utils {
 }
 
 
+
 /// Utility functions for parsing a FEN string to a GameState.
 mod parse_utils {
     use super::*;
@@ -252,6 +257,7 @@ mod parse_utils {
         None
     }
 }
+
 
 
 #[cfg(test)]
