@@ -18,62 +18,80 @@ pub type Square = u8;
 /// let white_rooks = gamestate.bbs[PieceIndex::ROOK];
 /// let black_queens = gamestate.bbs[Color::BLACK+PieceIndex::QUEEN];
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub enum PieceIndex {
-    Pawn = 0,
-    Bishop = 1,
-    Knight = 2,
-    Rook = 3,
-    Queen = 4,
-    King = 5,
-    Null = 6,
-}
-
-pub enum Color {
-    Black = 6,
-    White = 0,
+pub enum Piece {
+    WhitePawn   = 0,
+    WhiteBishop = 1,
+    WhiteKnight = 2,
+    WhiteRook   = 3,
+    WhiteQueen  = 4,
+    WhiteKing   = 5,
+    BlackPawn   = 6,
+    BlackBishop = 7,
+    BlackKnight = 8,
+    BlackRook   = 9,
+    BlackQueen  = 10,
+    BlackKing   = 11,
+    Null        = 12,
 }
 
 
 /// Represents the state of the board as well as game metadata (en passant square, castle rights, 
 /// and player to move). 
 /// See FEN (Forsyth-Edwards) Notation wiki page for more info.
+#[derive(Clone, Copy)]
 pub struct GameState {
     pub bbs: [BitBoard;12],
     white_to_move: bool,
-    ep_square: Option<u64>, // BitBoard with only en passant square set.
+    ep_square: Option<Square>, // BitBoard with only en passant square set.
     halfmove_clock: u8,
-    white_castlerights: [bool;2], // Kingside and queenside.
-    black_castlerights: [bool;2],
+    castlerights: [bool;4], // White/black, kingside and queenside.
     occupancy: PieceBitBoards,
 }
 
 // Public functions for GameState.
 impl GameState {
-
     /// Returns a new gamestate with empty bbs, white to move, no ep square, 0 halfmove clock, full
     /// castle rights.
     pub fn new_empty() -> Self {
-        GameState{
+        GameState {
             bbs: [0;12],
             white_to_move: true,
             ep_square: None, // BitBoard with only en passant square set.
             halfmove_clock: 0,
-            white_castlerights: [true;2],
-            black_castlerights: [true;2],
+            castlerights: [true;4],
             occupancy: PieceBitBoards::new(),
         }
     }
 
+    /// Make a new GameState.
+    pub fn new(
+        bbs: [BitBoard;12],
+        white_to_move: bool,
+        ep_square: Option<Square>,
+        halfmove_clock: u8,
+        castlerights: [bool;4],
+    ) -> Self {
+        GameState {
+            bbs,
+            white_to_move,
+            ep_square,
+            halfmove_clock,
+            castlerights,
+            occupancy: PieceBitBoards::new(),
+        }
+
+    }
+
     /// Find the bitboard index of the piece occupying the square given by sq_idx. If no such
     /// bitboard exists, return None.
-    pub fn occupying_piece(&self, sq: Square) -> Option<PieceIndex> {
+    pub fn occupying_piece(&self, sq: Square) -> Option<Piece> {
         self.occupancy.get(sq)
     }
 
     /// Set the bit at the given sq_idx on the given bitboard.
-    pub fn add_piece(&mut self, bb: PieceIndex, sq: Square) {
-        self.occupancy.put(sq, bb);
-        self.bbs[bb as usize] |= masks::SQUARES[sq as usize]
+    pub fn add_piece(&mut self, piece: Piece, sq: Square) {
+        self.occupancy.put(sq, piece);
+        self.bbs[piece as usize] |= masks::SQUARES[sq as usize]
     }
 
     /// Unset the bit at the given sq_idx on the given bitboard.
@@ -86,46 +104,48 @@ impl GameState {
                 self.bbs[pi as usize] &= !masks::SQUARES[sq as usize]
             }
         }
-
     }
 }
 
 
 /// Data structure to map from square number -> occupying piece bitboard idx.
+#[derive(Copy, Clone)]
 struct PieceBitBoards {
-    map: [PieceIndex;64],
+    map: [Piece;64],
 }
 
 /// Map from squre to occupying piece.
 impl PieceBitBoards {
     pub fn new() -> Self {
-        PieceBitBoards { map: [PieceIndex::Null;64] }
+        PieceBitBoards { map: [Piece::Null;64] }
     }
 
     /// Get Some(<piece_at_sq>) or None if there is no such piece.
-    pub fn get(&self, sq: Square) -> Option<PieceIndex> {
+    pub fn get(&self, sq: Square) -> Option<Piece> {
         match self.map[sq as usize] {
-            PieceIndex::Null => None,
+            Piece::Null => None,
             pi => Some(pi),
         }
     }
 
     /// Remove the piece from the map at the given square.
     pub fn remove(&mut self, sq: Square) {
-        self.map[sq as usize] = PieceIndex::Null;
+        self.map[sq as usize] = Piece::Null;
     }
 
     /// Put the piece at the given square in the map.
-    pub fn put(&mut self, sq: Square, pi: PieceIndex) {
+    pub fn put(&mut self, sq: Square, pi: Piece) {
         self.map[sq as usize] = pi;
     }
 }
 
 
-/// We store this in the stack for fast access. Thus we need a max size.
+/// We store the state stack in the stack for fast access. Thus we need a max size.
 pub const MAX_MOVESTACK_DEPTH: usize = 100;
+
+/// Represents a stack of game states that have occured from the initial position.
 struct GameStateStack {
-    backing: [Option<StackElt>;MAX_MOVESTACK_DEPTH],
+    backing: [Option<GameState>;MAX_MOVESTACK_DEPTH],
     size: usize,
 }
 
@@ -134,12 +154,12 @@ impl GameStateStack {
         GameStateStack { backing: [None;MAX_MOVESTACK_DEPTH], size: 0 }
     }
 
-    pub fn push(&mut self, elt: StackElt) {
+    pub fn push(&mut self, elt: GameState) {
         self.backing[self.size] = Some(elt);
         self.size += 1;
     }
 
-    pub fn pop(&mut self) -> Option<StackElt> {
+    pub fn pop(&mut self) -> Option<GameState> {
         if self.size <= 0 {
             return None;
         }
@@ -147,10 +167,6 @@ impl GameStateStack {
         std::mem::swap(&mut self.backing[self.size], &mut res);
         res
     }
-}
-
-#[derive(Copy, Clone)]
-struct StackElt {
 }
 
 
@@ -162,10 +178,9 @@ mod tests {
     /// Test setting/unsetting each bit.
     pub fn test_set_unset() {
         let mut game_state = GameState::new_empty();
-        game_state.add_piece(PieceIndex::Pawn, 30);
-        assert_eq!(game_state.occupying_piece(30), Some(PieceIndex::Pawn));
+        game_state.add_piece(Piece::WhitePawn, 30);
+        assert_eq!(game_state.occupying_piece(30), Some(Piece::WhitePawn));
         game_state.remove_piece(30);
         assert_eq!(game_state.occupying_piece(30), None);
     }
-
 }

@@ -1,4 +1,4 @@
-use crate::game_state::{ GameState, Square, PieceIndex };
+use crate::game_state::{ GameState, Square, Piece };
 
 // Do not change the order.
 const METADATA_TO_MOVETYPE: [MoveType;16] = [
