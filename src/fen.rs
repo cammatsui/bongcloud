@@ -18,7 +18,6 @@ const FEN_PIECES: [(char, Piece);12] = [
     ('Q', Piece::BlackQueen),
     ('K', Piece::BlackKing),
 ];
-
 const FEN_RANKS: [(char, u8);8] = [
     ('a', 0),
     ('b', 1),
