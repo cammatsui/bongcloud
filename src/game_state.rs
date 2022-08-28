@@ -1,6 +1,6 @@
 ///! Structs and types related to the state of the game board.
-use crate::bits::{ masks, utils };
-use crate::game_move::{ GameMove, MoveType };
+use crate::bits::masks;
+use crate::game_move::{GameMove, MoveType};
 
 
 
@@ -15,30 +15,31 @@ pub type Square = u8;
 
 
 
-/// Piece type index into GameState's bitboards arrays. 
+/// Piece type index into GameState's bitboards arrays.
 ///
-/// e.g. 
+/// e.g.
 /// let white_rooks = gamestate.bbs[Piece::WhiteRook];
 /// let black_queens = gamestate.bbs[Piece::BlackQueen];
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Piece {
-    WhitePawn   = 0,
+    WhitePawn = 0,
     WhiteBishop = 1,
     WhiteKnight = 2,
-    WhiteRook   = 3,
-    WhiteQueen  = 4,
-    WhiteKing   = 5,
-    BlackPawn   = 6,
+    WhiteRook = 3,
+    WhiteQueen = 4,
+    WhiteKing = 5,
+    BlackPawn = 6,
     BlackBishop = 7,
     BlackKnight = 8,
-    BlackRook   = 9,
-    BlackQueen  = 10,
-    BlackKing   = 11,
-    Null        = 12,
+    BlackRook = 9,
+    BlackQueen = 10,
+    BlackKing = 11,
+    Null = 12,
 }
 
 
 
+/// Represents a Game; a wrapper around a StateStack of GameStates.
 pub struct Game {
     stack: StateStack,
     depth_from_start: u8,
@@ -47,14 +48,17 @@ pub struct Game {
 impl Game {
     /// Create a new game, initializing the StateStack with the given starting GameState.
     pub fn new(starting_state: GameState) -> Self {
-        let mut game = Game { stack: StateStack::new(), depth_from_start: 0 };
+        let mut game = Game {
+            stack: StateStack::new(),
+            depth_from_start: 0,
+        };
         game.stack.push(starting_state);
         game
     }
 
-    /// Apply the given GameMove to the current state and push 
+    /// Apply the given GameMove to the current state and push the new state to the stack.
     pub fn make(&mut self, game_move: GameMove) {
-        let cur_state = self.stack.peek();
+        let cur_state = self.stack.peek().unwrap();
         let next_state = cur_state.make(game_move);
         self.stack.push(next_state);
         self.depth_from_start += 1;
@@ -69,17 +73,18 @@ impl Game {
 
 
 
-/// Represents the state of the board as well as game metadata (en passant square, castle rights, 
-/// and player to move). 
+/// Represents the state of the board as well as game metadata (en passant square, castle rights,
+/// and player to move).
+///
 /// See FEN (Forsyth-Edwards) Notation wiki page for more info.
 #[derive(Clone, Copy)]
 pub struct GameState {
-    pub bbs: [BitBoard;12],
+    pub bbs: [BitBoard; 12],
     pub white_to_move: bool,
     pub ep_square: Option<Square>, // BitBoard with only en passant square set.
     pub halfmove_clock: u8,
     pub fullmove_clock: u32,
-    pub castlerights: [bool;4], // White/black, kingside and queenside.
+    pub castlerights: [bool; 4], // White/black, kingside and queenside.
     occupancy: PieceBitBoards,
 }
 
@@ -89,24 +94,24 @@ impl GameState {
     /// castle rights.
     pub fn new_empty() -> Self {
         GameState {
-            bbs: [0;12],
+            bbs: [0; 12],
             white_to_move: true,
             ep_square: None, // BitBoard with only en passant square set.
             halfmove_clock: 0,
             fullmove_clock: 1,
-            castlerights: [true;4],
+            castlerights: [true; 4],
             occupancy: PieceBitBoards::new(),
         }
     }
 
     /// Make a new GameState.
     pub fn new(
-        bbs: [BitBoard;12],
+        bbs: [BitBoard; 12],
         white_to_move: bool,
         ep_square: Option<Square>,
         halfmove_clock: u8,
         fullmove_clock: u32,
-        castlerights: [bool;4],
+        castlerights: [bool; 4],
     ) -> Self {
         GameState {
             bbs,
@@ -136,9 +141,9 @@ impl GameState {
     pub fn remove_piece(&mut self, sq: Square) -> Option<Piece> {
         match self.occupancy.get(sq) {
             None => None,
-            Some(pi) => {
+            Some(piece) => {
                 let res = self.occupancy.remove(sq);
-                self.bbs[pi as usize] &= !masks::SQUARES[sq as usize];
+                self.bbs[piece as usize] &= !masks::SQUARES[sq as usize];
                 res
             }
         }
@@ -152,15 +157,52 @@ impl GameState {
 
     /// Apply the given move to this GameState, and return the GameState after the move is applied.
     // TODO: Could do this in-place by instead not keeping position in the StateStack.
+    //
+    // left TODO: Castling, correct e.p. square, double check everything.
     pub fn make(&self, game_move: GameMove) -> Self {
         let mut new_state = self.clone();
         let mut reset_halfmove_clock = false;
-    
+
         let move_type = game_move.move_type();
+        let castle_color_flag = if self.white_to_move { 0 } else { 2 };
 
         // Handles castling.
         if (move_type == MoveType::QueenCastle) || (move_type == MoveType::KingCastle) {
-            // TODO: do castle stuff and return new state.
+            // Move the king.
+            let (king_from_sq, king) = 
+                if self.white_to_move { (4, Piece::WhiteKing) } else { (60, Piece::BlackKing) };
+            let king_to_sq = match (move_type, self.white_to_move) {
+                (MoveType::QueenCastle, true) => 2,
+                (MoveType::KingCastle, true) => 6,
+                (MoveType::QueenCastle, false) => 58,
+                (MoveType::KingCastle, false) => 62,
+                _ => 100,
+            };
+            new_state.remove_piece(king_from_sq);
+            new_state.add_piece(king, king_to_sq);
+
+            // Move the rook.
+            let rook = if self.white_to_move { Piece::WhiteRook } else { Piece::BlackRook };
+            let rook_from_sq = match (move_type, self.white_to_move) {
+                (MoveType::QueenCastle, true) => 0,
+                (MoveType::KingCastle, true) => 7,
+                (MoveType::QueenCastle, false) => 56,
+                (MoveType::KingCastle, false) => 63,
+                _ => 100,
+            };
+            let rook_to_sq = match (move_type, self.white_to_move) {
+                (MoveType::QueenCastle, true) => 3,
+                (MoveType::KingCastle, true) => 5,
+                (MoveType::QueenCastle, false) => 59,
+                (MoveType::KingCastle, false) => 61,
+                _ => 100,
+            };
+            new_state.remove_piece(rook_to_sq);
+            new_state.add_piece(rook, rook_from_sq);
+
+            // Clear castle rights.
+            new_state.castlerights[castle_color_flag+0] = false;
+            new_state.castlerights[castle_color_flag+1] = false;
         }
 
         let fromsquare = game_move.fromsquare();
@@ -174,8 +216,8 @@ impl GameState {
             let mut cap_sq = tosquare;
             if move_type == MoveType::EpCapture {
                 cap_sq = match self.white_to_move {
-                    true => self.ep_square.unwrap()+8,
-                    false => self.ep_square.unwrap()-8,
+                    true => self.ep_square.unwrap() + 8,
+                    false => self.ep_square.unwrap() - 8,
                 }
             }
             new_state.remove_piece(cap_sq);
@@ -187,8 +229,8 @@ impl GameState {
         new_state.add_piece(moving, tosquare);
 
         // Reset halfmove clock if pawn was moved.
-        reset_halfmove_clock = reset_halfmove_clock || 
-            (moving == Piece::WhitePawn || moving == Piece::BlackPawn);
+        reset_halfmove_clock =
+            reset_halfmove_clock || (moving == Piece::WhitePawn || moving == Piece::BlackPawn);
 
         // Promote the moved piece, if necessary.
         if game_move.is_promo() {
@@ -197,15 +239,29 @@ impl GameState {
             new_state.promote_piece(tosquare, promo_piece);
         }
 
-        // Update non-positional data.
-        new_state.ep_square = if move_type != MoveType::DoublePawnPush {
-            None
-        } else {
-            if self.white_to_move { Some(tosquare-8) } else { Some(tosquare+8) }
+        // Update ep square, side to move, clocks.
+        new_state.ep_square = if move_type != MoveType::DoublePawnPush { None } else {
+            if self.white_to_move { Some(tosquare - 8) } else { Some(tosquare + 8) }
         };
         new_state.white_to_move = !self.white_to_move;
         if !self.white_to_move { new_state.fullmove_clock += 1 }
-        new_state.halfmove_clock = if reset_halfmove_clock { self.halfmove_clock+1 } else { 0 };
+        new_state.halfmove_clock = if reset_halfmove_clock { self.halfmove_clock + 1 } else { 0 };
+
+        // Update castle rights if necessary.
+        let has_castlerights = 
+            self.castlerights[castle_color_flag+1] || self.castlerights[castle_color_flag+1];
+        if has_castlerights && (moving == Piece::WhiteKing || moving == Piece::BlackKing) {
+            new_state.castlerights[castle_color_flag+0] = false;
+            new_state.castlerights[castle_color_flag+1] = false;
+        } else if has_castlerights && (moving == Piece::WhiteRook || moving == Piece::BlackRook) {
+            match (moving, fromsquare) {
+                (Piece::WhiteRook,  0) => new_state.castlerights[0] = false,
+                (Piece::WhiteRook,  7) => new_state.castlerights[1] = false,
+                (Piece::BlackRook, 63) => new_state.castlerights[3] = false,
+                (Piece::BlackRook, 56) => new_state.castlerights[3] = false,
+                _ => ()
+            }
+        }
 
         new_state
     }
@@ -213,16 +269,18 @@ impl GameState {
 
 
 
-/// Data structure to map from square number -> occupying piece bitboard idx.
+/// Data structure to map from square number -> occupying piece.
 #[derive(Copy, Clone)]
 struct PieceBitBoards {
-    map: [Piece;64],
+    map: [Piece; 64],
 }
 
 /// Map from squre to occupying piece.
 impl PieceBitBoards {
     pub fn new() -> Self {
-        PieceBitBoards { map: [Piece::Null;64] }
+        PieceBitBoards {
+            map: [Piece::Null; 64],
+        }
     }
 
     /// Get Some(<piece_at_sq>) or None if there is no such piece.
@@ -236,12 +294,9 @@ impl PieceBitBoards {
     /// Remove the piece from the map at the given square and return the piece. If there is no such
     /// piece, returns None.
     pub fn remove(&mut self, sq: Square) -> Option<Piece> {
-        let prev = self.map[sq as usize];
+        let removed = self.get(sq);
         self.map[sq as usize] = Piece::Null;
-        match prev {
-            Piece::Null => None,
-            piece => Some(piece),
-        }
+        removed
     }
 
     /// Put the piece at the given square in the map.
@@ -257,14 +312,17 @@ pub const MAX_MOVESTACK_DEPTH: usize = 100;
 
 /// Represents a stack of game states that have occured from the initial position.
 struct StateStack {
-    backing: [Option<GameState>;MAX_MOVESTACK_DEPTH],
+    backing: [Option<GameState>; MAX_MOVESTACK_DEPTH],
     size: usize,
 }
 
 impl StateStack {
     /// Create a new empty StateStack.
     pub fn new() -> Self {
-        StateStack { backing: [None;MAX_MOVESTACK_DEPTH], size: 0 }
+        StateStack {
+            backing: [None; MAX_MOVESTACK_DEPTH],
+            size: 0,
+        }
     }
 
     /// Add a GameState to the top of the StateStack.
@@ -279,7 +337,7 @@ impl StateStack {
         if self.size <= 0 {
             return None;
         }
-        self.backing[self.size-1].as_ref()
+        self.backing[self.size - 1].as_ref()
     }
 
     /// Remove and return the top GameState on the StateStack, or None if the stack is empty
