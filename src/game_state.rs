@@ -157,8 +157,6 @@ impl GameState {
 
     /// Apply the given move to this GameState, and return the GameState after the move is applied.
     // TODO: Could do this in-place by instead not keeping position in the StateStack.
-    //
-    // left TODO: Castling, correct e.p. square, double check everything.
     pub fn make(&self, game_move: GameMove) -> Self {
         let mut new_state = self.clone();
         let mut reset_halfmove_clock = false;
@@ -172,10 +170,10 @@ impl GameState {
             let (king_from_sq, king) = 
                 if self.white_to_move { (4, Piece::WhiteKing) } else { (60, Piece::BlackKing) };
             let king_to_sq = match (move_type, self.white_to_move) {
-                (MoveType::QueenCastle, true) => 2,
-                (MoveType::KingCastle, true) => 6,
-                (MoveType::QueenCastle, false) => 58,
-                (MoveType::KingCastle, false) => 62,
+                (MoveType::QueenCastle, true)   => 2,
+                (MoveType::KingCastle, true)    => 6,
+                (MoveType::QueenCastle, false)  => 58,
+                (MoveType::KingCastle, false)   => 62,
                 _ => 100,
             };
             new_state.remove_piece(king_from_sq);
@@ -184,17 +182,17 @@ impl GameState {
             // Move the rook.
             let rook = if self.white_to_move { Piece::WhiteRook } else { Piece::BlackRook };
             let rook_from_sq = match (move_type, self.white_to_move) {
-                (MoveType::QueenCastle, true) => 0,
-                (MoveType::KingCastle, true) => 7,
-                (MoveType::QueenCastle, false) => 56,
-                (MoveType::KingCastle, false) => 63,
+                (MoveType::QueenCastle, true)   => 0,
+                (MoveType::KingCastle, true)    => 7,
+                (MoveType::QueenCastle, false)  => 56,
+                (MoveType::KingCastle, false)   => 63,
                 _ => 100,
             };
             let rook_to_sq = match (move_type, self.white_to_move) {
-                (MoveType::QueenCastle, true) => 3,
-                (MoveType::KingCastle, true) => 5,
-                (MoveType::QueenCastle, false) => 59,
-                (MoveType::KingCastle, false) => 61,
+                (MoveType::QueenCastle, true)   => 3,
+                (MoveType::KingCastle, true)    => 5,
+                (MoveType::QueenCastle, false)  => 59,
+                (MoveType::KingCastle, false)   => 61,
                 _ => 100,
             };
             new_state.remove_piece(rook_from_sq);
@@ -223,16 +221,16 @@ impl GameState {
             let mut cap_sq = tosquare;
             if move_type == MoveType::EpCapture {
                 cap_sq = match self.white_to_move {
-                    true => self.ep_square.unwrap() + 8,
-                    false => self.ep_square.unwrap() - 8,
+                    true    => self.ep_square.unwrap() - 8,
+                    false   => self.ep_square.unwrap() + 8,
                 }
             }
-            new_state.remove_piece(cap_sq);
+            let piece = new_state.remove_piece(cap_sq);
             reset_halfmove_clock = true;
         }
 
         // Move the actual piece.
-        new_state.remove_piece(fromsquare);
+        let piece = new_state.remove_piece(fromsquare);
         new_state.add_piece(moving, tosquare);
 
         // Reset halfmove clock if pawn was moved.
@@ -250,9 +248,10 @@ impl GameState {
         new_state.ep_square = if move_type != MoveType::DoublePawnPush { None } else {
             if self.white_to_move { Some(tosquare - 8) } else { Some(tosquare + 8) }
         };
+
         new_state.white_to_move = !self.white_to_move;
         if !self.white_to_move { new_state.fullmove_clock += 1 }
-        new_state.halfmove_clock = if reset_halfmove_clock {0} else { self.halfmove_clock + 1 };
+        new_state.halfmove_clock = if reset_halfmove_clock { 0 } else { self.halfmove_clock + 1 };
 
         // Update castle rights if necessary.
         let has_castlerights = 

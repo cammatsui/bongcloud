@@ -18,16 +18,6 @@ const FEN_PIECES: [(char, Piece);12] = [
     ('k', Piece::BlackKing),
 ];
 const FEN_RANKS: [(char, u8);8] = [
-    ('a', 0),
-    ('b', 1),
-    ('c', 2),
-    ('d', 3),
-    ('e', 4),
-    ('f', 5),
-    ('g', 6),
-    ('h', 7),
-];
-const FEN_FILES: [(char, u8);8] = [
     ('1', 0),
     ('2', 1),
     ('3', 2),
@@ -36,6 +26,16 @@ const FEN_FILES: [(char, u8);8] = [
     ('6', 5),
     ('7', 6),
     ('8', 7),
+];
+const FEN_FILES: [(char, u8);8] = [
+    ('a', 0),
+    ('b', 1),
+    ('c', 2),
+    ('d', 3),
+    ('e', 4),
+    ('f', 5),
+    ('g', 6),
+    ('h', 7),
 ];
 
 
@@ -106,7 +106,7 @@ mod serialize_utils {
 
         let ep_square = game_state.ep_square.unwrap();
         let file_idx: u8 = utils::file_idx(ep_square);
-        let rank_idx: u8 = utils::file_idx(ep_square);
+        let rank_idx: u8 = utils::rank_idx(ep_square);
         format!("{}{}", char_from_file(file_idx).unwrap(), char_from_rank(rank_idx).unwrap())
     }
 

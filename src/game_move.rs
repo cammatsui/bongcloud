@@ -67,7 +67,6 @@ impl GameMove {
         GameMove { data: val }
     }
 
-
     /// Create a GameMove struct from a u16.
     pub fn from_val(val: u16) -> Self {
         GameMove { data: val }
