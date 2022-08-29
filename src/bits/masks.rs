@@ -1,7 +1,6 @@
 use crate::game_state::BitBoard;
 
 
-
 // Bit representations for ranks.
 pub const RANK_1: BitBoard = 0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_11111111;
 pub const RANK_2: BitBoard = 0b00000000_00000000_00000000_00000000_00000000_00000000_11111111_00000000;
@@ -44,7 +43,6 @@ const fn make_square_masks() -> [BitBoard;64] {
     }
     squares
 }
-
 
 
 #[cfg(test)]

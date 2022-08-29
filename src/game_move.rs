@@ -1,7 +1,6 @@
 use crate::game_state::{ Square, Piece };
 
 
-
 // Do not change the order!
 const METADATA_TO_MOVETYPE: [MoveType;16] = [
     MoveType::Quiet,                // code 0
@@ -33,6 +32,7 @@ const QUEEN_PROMO_MASK: u16 =  3u16;
 const LSB6_BITMASK: u16 = 63;
 const LSB4_BITMASK: u16 = 15;
 
+
 /// Represents a move with from-to square indices as first 12 (6 for each) bits, and last 4 bits as
 /// metadata. 
 /// See www.chessprogramming.org/Encoding_Moves for more info.
@@ -61,6 +61,13 @@ pub struct GameMove {
 }
 
 impl GameMove {
+    /// Create a gamemove from the given fromsquare, tosquare, and move type.
+    pub fn new(fromsquare: Square, tosquare: Square, move_type: MoveType) -> Self {
+        let val = ((((0u16 | fromsquare as u16) << 6) | tosquare as u16) << 4) | move_type as u16;
+        GameMove { data: val }
+    }
+
+
     /// Create a GameMove struct from a u16.
     pub fn from_val(val: u16) -> Self {
         GameMove { data: val }
@@ -111,22 +118,24 @@ impl GameMove {
     }
 }
 
+
 /// Represents the types of moves that can occur. See GameMove docs.
 #[derive(Copy, Clone, PartialEq, Eq)]
+#[repr(u16)]
 pub enum MoveType {
-    NullMove,
-    Quiet,
-    DoublePawnPush,
-    KingCastle,
-    QueenCastle,
-    Capture,
-    EpCapture,
-    KnightPromo,
-    BishopPromo,
-    RookPromo,
-    QueenPromo,
-    KnightPromoCapture,
-    BishopPromoCapture,
-    RookPromoCapture,
-    QueenPromoCapture,
+    NullMove            = 0b0110,
+    Quiet               = 0b0000,
+    DoublePawnPush      = 0b0001,
+    KingCastle          = 0b0010,
+    QueenCastle         = 0b0011,
+    Capture             = 0b0100,
+    EpCapture           = 0b0101,
+    KnightPromo         = 0b1000,
+    BishopPromo         = 0b1001,
+    RookPromo           = 0b1010,
+    QueenPromo          = 0b1011,
+    KnightPromoCapture  = 0b1100,
+    BishopPromoCapture  = 0b1101,
+    RookPromoCapture    = 0b1110,
+    QueenPromoCapture   = 0b1111,
 }

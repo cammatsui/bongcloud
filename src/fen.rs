@@ -2,21 +2,20 @@ use crate::game_state::{ GameState, Square, Piece };
 use crate::bits::utils;
 
 
-
 /// Used to conver between FEN and GameState reprs.
 const FEN_PIECES: [(char, Piece);12] = [
-    ('p', Piece::WhitePawn),
-    ('b', Piece::WhiteBishop),
-    ('n', Piece::WhiteKnight),
-    ('r', Piece::WhiteRook),
-    ('q', Piece::WhiteQueen),
-    ('k', Piece::WhiteKing),
-    ('P', Piece::BlackPawn),
-    ('B', Piece::BlackBishop),
-    ('N', Piece::BlackKnight),
-    ('R', Piece::BlackRook),
-    ('Q', Piece::BlackQueen),
-    ('K', Piece::BlackKing),
+    ('P', Piece::WhitePawn),
+    ('B', Piece::WhiteBishop),
+    ('N', Piece::WhiteKnight),
+    ('R', Piece::WhiteRook),
+    ('Q', Piece::WhiteQueen),
+    ('K', Piece::WhiteKing),
+    ('p', Piece::BlackPawn),
+    ('b', Piece::BlackBishop),
+    ('n', Piece::BlackKnight),
+    ('r', Piece::BlackRook),
+    ('q', Piece::BlackQueen),
+    ('k', Piece::BlackKing),
 ];
 const FEN_RANKS: [(char, u8);8] = [
     ('a', 0),
@@ -40,9 +39,8 @@ const FEN_FILES: [(char, u8);8] = [
 ];
 
 
-
 /// Make a GameState from the given FEN string.
-pub fn parse_fen(fen: String) -> GameState {
+pub fn parse_fen(fen: &String) -> GameState {
     let fields: Vec<&str> = fen.split(" ").collect();
     if fields.len() != 6 { panic!("Invalid FEN string.") }
     let pos_str = fields[0];
@@ -50,8 +48,8 @@ pub fn parse_fen(fen: String) -> GameState {
     let to_move_str = fields[1];
     let castle_str = fields[2];
     let ep_str = fields[3];
-    let halfmove: u8 = fields[4].trim().parse().expect("Halfmove is not a string.");
-    let fullmove: u32 = fields[5].trim().parse().expect("Fullmove is not a string.");
+    let fullmove: u32 = fields[4].trim().parse().expect("Fullmove is not a string.");
+    let halfmove: u8 = fields[5].trim().parse().expect("Halfmove is not a string.");
 
     let mut game_state = GameState::new(
         [0;12],
@@ -67,19 +65,17 @@ pub fn parse_fen(fen: String) -> GameState {
 }
 
 
-
 /// Make a FEN string from the given GameState.
-pub fn ser_game_state(game_state: &GameState) -> String {
+pub fn to_fen(game_state: &GameState) -> String {
     vec![
         serialize_utils::ser_bbs(game_state),
         serialize_utils::ser_side_to_move(game_state),
         serialize_utils::ser_castle_rights(game_state),
         serialize_utils::ser_ep_square(game_state),
-        serialize_utils::ser_halfmove_clock(game_state),
         serialize_utils::ser_fullmove_clock(game_state),
+        serialize_utils::ser_halfmove_clock(game_state),
     ].join(" ")
 }
-
 
 
 /// Utility functions for serializing GameState to a FEN string.
@@ -127,7 +123,7 @@ mod serialize_utils {
     /// Create the FEN field for the board position from the GameState('s bitboards).
     pub fn ser_bbs(game_state: &GameState) -> String {
         let mut result = String::new();
-        for rank_idx in 0..8 {
+        for rank_idx in (0..8).rev() {
             let mut cur_empty_count = 0;
             for file_idx in 0..8 {
                 let sq_idx = utils::square_idx(rank_idx, file_idx);
@@ -146,7 +142,7 @@ mod serialize_utils {
                     result.push_str(&format!("{}", cur_empty_count));
                 }
             }
-            if rank_idx != 7 { result.push('/') }
+            if rank_idx != 0 { result.push('/') }
         }
         result
     }
@@ -176,7 +172,6 @@ mod serialize_utils {
 }
 
 
-
 /// Utility functions for parsing a FEN string to a GameState.
 mod parse_utils {
     use super::*;
@@ -204,20 +199,25 @@ mod parse_utils {
 
     /// Add the pieces to the board from the position string.
     pub fn add_pieces(pos_str: &str, game_state: &mut GameState) {
-        let ranks: Vec<&str> = pos_str.split("/").collect();
+        let mut ranks: Vec<&str> = pos_str.split("/").collect();
+        for i in 0..4 { ranks.swap(i, 7-i) }
         if ranks.len() != 8 { panic!("Invalid number of ranks.") }
 
         for i in 0..8 {
             let mut j = 0;
             let rank = ranks[i];
+            let mut file_idx = 0;
             while j < rank.len() {
                 let rank_char = format!("{}", ranks[i].chars().nth(j).unwrap());
                 match rank_char.parse::<usize>() {
-                    Ok(num) => j += num,
+                    Ok(num) => {
+                        file_idx += num;
+                        j += 1;
+                    }
                     _ => {
                         let piece = piece_from_char(rank_char.chars().nth(0).unwrap()).unwrap();
-                        game_state.add_piece(piece, utils::square_idx(i as u8, j as u8));
-                        println!("Placing {:?} on {}", piece, utils::square_idx(i as u8, j as u8));
+                        game_state.add_piece(piece, utils::square_idx(i as u8, file_idx as u8));
+                        file_idx += 1;
                         j += 1;
                     },
                 }
@@ -258,7 +258,6 @@ mod parse_utils {
 }
 
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -267,9 +266,7 @@ mod tests {
     #[test]
     /// Test that the starting FEN is parsed correctly.
     fn test_parse_starting_position() {
-        let game_state = parse_fen(STARTING_FEN.to_string());
-        let white_pawns: u64 = game_state.bbs[0];
-        println!("Game state: {white_pawns:#b}");
+        let game_state = parse_fen(&STARTING_FEN.to_string());
         assert_eq!(game_state.occupying_piece(0  as u8).unwrap(), Piece::WhiteRook);
         assert_eq!(game_state.occupying_piece(1  as u8).unwrap(), Piece::WhiteKnight);
         assert_eq!(game_state.occupying_piece(2  as u8).unwrap(), Piece::WhiteBishop);
@@ -310,8 +307,7 @@ mod tests {
         assert_eq!(game_state.occupying_piece(62 as u8).unwrap(), Piece::BlackKnight);
         assert_eq!(game_state.occupying_piece(63 as u8).unwrap(), Piece::BlackRook);
 
-        let serialized = ser_game_state(&game_state);
-        println!("{}", serialized);
+        let serialized = to_fen(&game_state);
         assert_eq!(STARTING_FEN, serialized);
     }
 }

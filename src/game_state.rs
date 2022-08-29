@@ -1,7 +1,6 @@
-///! Structs and types related to the state of the game board.
+///! This file contains structs and types related to the state of the game board.
 use crate::bits::masks;
-use crate::game_move::{GameMove, MoveType};
-
+use crate::game_move::{ GameMove, MoveType };
 
 
 /// A BitBoard is a 64-bit unsigned integer which gives piece occupancy. See chessprogrammingwiki
@@ -9,10 +8,8 @@ use crate::game_move::{GameMove, MoveType};
 pub type BitBoard = u64;
 
 
-
 /// Index for a square.
 pub type Square = u8;
-
 
 
 /// Piece type index into GameState's bitboards arrays.
@@ -36,7 +33,6 @@ pub enum Piece {
     BlackKing = 11,
     Null = 12,
 }
-
 
 
 /// Represents a Game; a wrapper around a StateStack of GameStates.
@@ -69,8 +65,12 @@ impl Game {
         self.stack.pop();
         self.depth_from_start -= 1;
     }
-}
 
+    /// Get the current GameState.
+    pub fn current_state(&self) -> GameState {
+        *self.stack.peek().unwrap()
+    }
+}
 
 
 /// Represents the state of the board as well as game metadata (en passant square, castle rights,
@@ -197,17 +197,24 @@ impl GameState {
                 (MoveType::KingCastle, false) => 61,
                 _ => 100,
             };
-            new_state.remove_piece(rook_to_sq);
-            new_state.add_piece(rook, rook_from_sq);
+            new_state.remove_piece(rook_from_sq);
+            new_state.add_piece(rook, rook_to_sq);
 
             // Clear castle rights.
             new_state.castlerights[castle_color_flag+0] = false;
             new_state.castlerights[castle_color_flag+1] = false;
+
+            // Update ep square, side to move, clocks.
+            new_state.white_to_move = !self.white_to_move;
+            if !self.white_to_move { new_state.fullmove_clock += 1 }
+            new_state.halfmove_clock = self.halfmove_clock + 1;
+
+            return new_state;
         }
 
         let fromsquare = game_move.fromsquare();
         let tosquare = game_move.tosquare();
-        let moving = self.occupancy.get(fromsquare)
+        let moving = self.occupying_piece(fromsquare)
             .expect("Illegal move; no piece on fromsquare");
 
         // If capture, find the capturing square (either tosquare or e.p. square), and remove the
@@ -245,15 +252,12 @@ impl GameState {
         };
         new_state.white_to_move = !self.white_to_move;
         if !self.white_to_move { new_state.fullmove_clock += 1 }
-        new_state.halfmove_clock = if reset_halfmove_clock { self.halfmove_clock + 1 } else { 0 };
+        new_state.halfmove_clock = if reset_halfmove_clock {0} else { self.halfmove_clock + 1 };
 
         // Update castle rights if necessary.
         let has_castlerights = 
             self.castlerights[castle_color_flag+1] || self.castlerights[castle_color_flag+1];
-        if has_castlerights && (moving == Piece::WhiteKing || moving == Piece::BlackKing) {
-            new_state.castlerights[castle_color_flag+0] = false;
-            new_state.castlerights[castle_color_flag+1] = false;
-        } else if has_castlerights && (moving == Piece::WhiteRook || moving == Piece::BlackRook) {
+        if has_castlerights && (moving == Piece::WhiteRook || moving == Piece::BlackRook) {
             match (moving, fromsquare) {
                 (Piece::WhiteRook,  0) => new_state.castlerights[0] = false,
                 (Piece::WhiteRook,  7) => new_state.castlerights[1] = false,
@@ -266,7 +270,6 @@ impl GameState {
         new_state
     }
 }
-
 
 
 /// Data structure to map from square number -> occupying piece.
@@ -304,7 +307,6 @@ impl PieceBitBoards {
         self.map[sq as usize] = pi;
     }
 }
-
 
 
 /// We store the state stack in the stack for fast access. Thus we need a max size.
@@ -349,22 +351,5 @@ impl StateStack {
         std::mem::swap(&mut self.backing[self.size], &mut res);
         self.size -= 1;
         res
-    }
-}
-
-
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    /// Test setting/unsetting each bit.
-    pub fn test_set_unset() {
-        let mut game_state = GameState::new_empty();
-        game_state.add_piece(Piece::WhitePawn, 30);
-        assert_eq!(game_state.occupying_piece(30), Some(Piece::WhitePawn));
-        game_state.remove_piece(30);
-        assert_eq!(game_state.occupying_piece(30), None);
     }
 }
