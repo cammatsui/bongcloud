@@ -1,6 +1,9 @@
+///! This file contains the MoveList struct.
 use crate::game_move::GameMove;
 
 
+/// A 256-length array to hold a list of GameMoves. Fixed length array (not Vec) to store in the 
+/// stack for faster access.
 pub struct MoveList {
     backing: [GameMove;256],
     size: usize,

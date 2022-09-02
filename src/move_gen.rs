@@ -1,4 +1,5 @@
-///! Contains functions for generating legal moves (stored in a MoveList) from a given GameState.
+///! This file contains functions for generating legal moves (stored in a MoveList) from a given 
+///! GameState.
 use crate::game_state::GameState;
 use crate::game_move::GameMove;
 use crate::move_list::MoveList;

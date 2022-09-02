@@ -1,3 +1,5 @@
+///! This file contains functions to parse FEN strings into GameStates and to serialize GameStates
+///! into FEN strings.
 use crate::game_state::{ GameState, Square, Piece, bb_utils };
 
 

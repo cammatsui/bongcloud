@@ -1,3 +1,4 @@
+///! This file contains various useful bitmasks for bitboards.
 use crate::game_state::BitBoard;
 
 
@@ -23,14 +24,6 @@ pub const FILE_H: BitBoard = 0b10000000_10000000_10000000_10000000_10000000_1000
 
 // Bit representations for squares.
 pub const SQUARES: [BitBoard;64] = make_square_masks();
-
-
-pub const CASTLES: [BitBoard;4] = [
-    (1u64 << 4) | (1u64 << 7),          // White Kingside.
-    1u64 | (1u64 << 4),                 // White Queenside.
-    ((1u64 << 4) | (1u64 << 7)) << 57,  // Black Kingside.
-    (1u64 | (1u64 << 4)) << 57,         // Black Queenside.
-];
 
 
 // Make masks with bit set for each square.
