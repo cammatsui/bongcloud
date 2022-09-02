@@ -8,8 +8,68 @@ use crate::game_move::{ GameMove, MoveType };
 pub type BitBoard = u64;
 
 
+/// Utility functions for BitBoards.
+pub mod bb_utils {
+    use crate::game_state::{ BitBoard, Square };
+
+    /// Print a bitboard for debugging.
+    pub fn debug_print(bb: BitBoard) {
+        let mut start: i16 = 56;
+        let mut to_print = String::new();
+        while start >= 0 {
+            for i in start..(start+8) {
+                if bit_set(bb, i as u8) { to_print.push('1') } else { to_print.push('0') }
+            }
+            to_print.push('\n');
+            start -= 8;
+        }
+        println!("{}", to_print);
+    }
+
+    /// Get whether a given bit is set.
+    pub fn bit_set(bb: BitBoard, sq: Square) -> bool {
+        1 << sq & bb != 0
+    }
+
+    /// Get index of lsb on the given bitboard.
+    pub fn bitscan(bb: BitBoard) -> u32 {
+        bb.trailing_zeros()
+    }
+
+    /// Get least significant bit in the given bitboard.
+    pub fn lsb_mask(bb: BitBoard) -> BitBoard {
+        bb & 0u64.wrapping_sub(bb)
+    }
+}
+
+
 /// Index for a square.
 pub type Square = u8;
+
+/// Utility functions for squares.
+pub mod sq_utils {
+    use crate::game_state::Square;
+    const LSB3_BITMASK: u64 = 7;
+
+    /// Get the index of a square from its rank and file indices.
+    pub fn square_idx(rank_idx: u8, file_idx: u8) -> Square {
+        (rank_idx << 3) + file_idx
+    }
+
+    /// Get the file index of a square.
+    /// See Little-Endian Rank-File Mapping @
+    /// www.chessprogramming.org/Square_Mapping_Considerations.
+    pub fn file_idx(square_idx: u8) -> u8 {
+        square_idx & (LSB3_BITMASK as u8)
+    }
+
+    /// Get the rank index of a square.
+    /// See Little-Endian Rank-File Mapping @
+    /// www.chessprogramming.org/Square_Mapping_Considerations.
+    pub fn rank_idx(square_idx: u8) -> u8 {
+        square_idx >> 3
+    }
+}
 
 
 /// Piece type index into GameState's bitboards arrays.
@@ -225,12 +285,12 @@ impl GameState {
                     false   => self.ep_square.unwrap() + 8,
                 }
             }
-            let piece = new_state.remove_piece(cap_sq);
+            new_state.remove_piece(cap_sq);
             reset_halfmove_clock = true;
         }
 
         // Move the actual piece.
-        let piece = new_state.remove_piece(fromsquare);
+        new_state.remove_piece(fromsquare);
         new_state.add_piece(moving, tosquare);
 
         // Reset halfmove clock if pawn was moved.
@@ -338,7 +398,7 @@ impl StateStack {
         if self.size <= 0 {
             return None;
         }
-        self.backing[self.size - 1].as_ref()
+        self.backing[self.size-1].as_ref()
     }
 
     /// Remove and return the top GameState on the StateStack, or None if the stack is empty

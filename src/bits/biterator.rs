@@ -1,5 +1,5 @@
 use crate::game_state::BitBoard;
-use crate::bits::utils::{ lsb_mask, bitscan };
+use crate::game_state::bb_utils::{ lsb_mask, bitscan };
 
 
 /// Get a BitErator for a bitboard.

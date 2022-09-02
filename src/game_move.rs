@@ -1,3 +1,4 @@
+///! This file contains structs/types related to moves on a GameState.
 use crate::game_state::{ Square, Piece };
 
 
@@ -56,8 +57,9 @@ const LSB4_BITMASK: u16 = 15;
 ///  | 15   | 1         | 1        | 1         | 1         | QueenPromoCapture  |
 ///
 /// Note: castling fromsquare is king's square, tosquare is castle side's rook square.
+#[derive(Copy, Clone)]
 pub struct GameMove {
-    data: u16,
+    pub data: u16,
 }
 
 impl GameMove {

@@ -1,5 +1,4 @@
-use crate::game_state::{ GameState, Square, Piece };
-use crate::bits::utils;
+use crate::game_state::{ GameState, Square, Piece, bb_utils };
 
 
 /// Used to conver between FEN and GameState reprs.
@@ -105,8 +104,8 @@ mod serialize_utils {
         if let None = game_state.ep_square { return String::from("-") }
 
         let ep_square = game_state.ep_square.unwrap();
-        let file_idx: u8 = utils::file_idx(ep_square);
-        let rank_idx: u8 = utils::rank_idx(ep_square);
+        let file_idx: u8 = bb_utils::file_idx(ep_square);
+        let rank_idx: u8 = bb_utils::rank_idx(ep_square);
         format!("{}{}", char_from_file(file_idx).unwrap(), char_from_rank(rank_idx).unwrap())
     }
 
@@ -126,7 +125,7 @@ mod serialize_utils {
         for rank_idx in (0..8).rev() {
             let mut cur_empty_count = 0;
             for file_idx in 0..8 {
-                let sq_idx = utils::square_idx(rank_idx, file_idx);
+                let sq_idx = bb_utils::square_idx(rank_idx, file_idx);
                 match game_state.occupying_piece(sq_idx) {
                     Some(piece) => {
                         let piece_char = char_from_piece(piece).unwrap();
@@ -216,7 +215,7 @@ mod parse_utils {
                     }
                     _ => {
                         let piece = piece_from_char(rank_char.chars().nth(0).unwrap()).unwrap();
-                        game_state.add_piece(piece, utils::square_idx(i as u8, file_idx as u8));
+                        game_state.add_piece(piece, bb_utils::square_idx(i as u8, file_idx as u8));
                         file_idx += 1;
                         j += 1;
                     },
@@ -231,7 +230,7 @@ mod parse_utils {
         if ep_str == "-" { return None }
         let file_idx = file_from_char(ep_str.chars().nth(0).unwrap()).unwrap();
         let rank_idx = rank_from_char(ep_str.chars().nth(1).unwrap()).unwrap();
-        Some(utils::square_idx(rank_idx, file_idx))
+        Some(bb_utils::square_idx(rank_idx, file_idx))
     }
 
 
