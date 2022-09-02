@@ -11,5 +11,4 @@ pub fn gen_legal_moves(state: GameState) -> MoveList {
 
 
 mod move_gen_utils {
-
 }

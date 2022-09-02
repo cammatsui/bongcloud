@@ -12,20 +12,6 @@ pub type BitBoard = u64;
 pub mod bb_utils {
     use crate::game_state::{ BitBoard, Square };
 
-    /// Print a bitboard for debugging.
-    pub fn debug_print(bb: BitBoard) {
-        let mut start: i16 = 56;
-        let mut to_print = String::new();
-        while start >= 0 {
-            for i in start..(start+8) {
-                if bit_set(bb, i as u8) { to_print.push('1') } else { to_print.push('0') }
-            }
-            to_print.push('\n');
-            start -= 8;
-        }
-        println!("{}", to_print);
-    }
-
     /// Get whether a given bit is set.
     pub fn bit_set(bb: BitBoard, sq: Square) -> bool {
         1 << sq & bb != 0
@@ -39,6 +25,20 @@ pub mod bb_utils {
     /// Get least significant bit in the given bitboard.
     pub fn lsb_mask(bb: BitBoard) -> BitBoard {
         bb & 0u64.wrapping_sub(bb)
+    }
+
+    /// Print a bitboard for debugging.
+    pub fn debug_print(bb: BitBoard) {
+        let mut start: i16 = 56;
+        let mut to_print = String::new();
+        while start >= 0 {
+            for i in start..(start+8) {
+                if bit_set(bb, i as u8) { to_print.push('1') } else { to_print.push('0') }
+            }
+            to_print.push('\n');
+            start -= 8;
+        }
+        println!("{}", to_print);
     }
 }
 
@@ -145,6 +145,7 @@ pub struct GameState {
     pub halfmove_clock: u8,
     pub fullmove_clock: u32,
     pub castlerights: [bool; 4], // White/black, kingside and queenside.
+    pub side_bbs: [BitBoard; 2],
     occupancy: PieceBitBoards,
 }
 
@@ -160,6 +161,7 @@ impl GameState {
             halfmove_clock: 0,
             fullmove_clock: 1,
             castlerights: [true; 4],
+            side_bbs: [0; 2],
             occupancy: PieceBitBoards::new(),
         }
     }
@@ -180,6 +182,7 @@ impl GameState {
             halfmove_clock,
             fullmove_clock,
             castlerights,
+            side_bbs: [0; 2],
             occupancy: PieceBitBoards::new(),
         }
     }
@@ -193,6 +196,11 @@ impl GameState {
     /// Set the bit at the given sq_idx on the given bitboard.
     pub fn add_piece(&mut self, piece: Piece, sq: Square) {
         self.occupancy.put(sq, piece);
+        if piece as u8 <= 5 { 
+            self.side_bbs[0] |= masks::SQUARES[sq as usize];
+        } else {
+            self.side_bbs[1] |= masks::SQUARES[sq as usize];
+        }
         self.bbs[piece as usize] |= masks::SQUARES[sq as usize]
     }
 
@@ -204,6 +212,11 @@ impl GameState {
             Some(piece) => {
                 let res = self.occupancy.remove(sq);
                 self.bbs[piece as usize] &= !masks::SQUARES[sq as usize];
+                if piece as u8 <= 5 {
+                    self.side_bbs[0] &= !masks::SQUARES[sq as usize];
+                } else {
+                    self.side_bbs[1] &= !masks::SQUARES[sq as usize];
+                }
                 res
             }
         }

@@ -21,13 +21,15 @@ impl MoveList {
         self.size += 1;
     }
 
+    /// Returns the last element in the MoveList.
     pub fn peek(&self) -> Option<GameMove> {
         if self.size <= 0 {
             return None;
         }
         Some(self.backing[self.size-1])
     }
-
+    
+    /// Removes & returns the last element in the MoveList.
     pub fn pop(&mut self) -> Option<GameMove> {
         if self.size <= 0 {
             return None;
