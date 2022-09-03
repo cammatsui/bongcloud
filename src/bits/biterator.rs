@@ -19,16 +19,16 @@ pub struct BitErator {
 }
 
 impl Iterator for BitErator {
-    type Item = u32;
+    type Item = u8;
 
-    fn next(&mut self) -> Option<u32> {
+    fn next(&mut self) -> Option<u8> {
         if self.bb == 0 {
             return None;
         }
 
         let lsb_idx = bitscan(self.bb);
         self.bb ^= lsb_mask(self.bb);
-        Some(lsb_idx)
+        Some(lsb_idx as u8)
     }
 }
 
